@@ -35,7 +35,10 @@ document.getElementById("swapBtn").onclick = () => {
 // Translate button
 document.getElementById("translateBtn").onclick = async () => {
     let text = document.getElementById("inputText").value;
-    if (!text) return alert("Bro enter some text.");
+    if (!text) {
+        alert("Bro enter some text.");
+        return;
+    }
 
     let payload = {
         text: text,
@@ -50,11 +53,26 @@ document.getElementById("translateBtn").onclick = async () => {
             body: JSON.stringify(payload)
         });
 
+        if (!res.ok) {
+            document.getElementById("outputText").value =
+                "Our servers are down right now.\nPlease try again in an hour.";
+            return;
+        }
+
         let data = await res.json();
+
+        if (data.error) {
+            document.getElementById("outputText").value =
+                "Our servers are under maintenance.\nPlease try again a little later.";
+            return;
+        }
+
         document.getElementById("outputText").value =
-            data.translated_text || data.error || "Error bro.";
+            data.translated_text || "Translation unavailable right now.";
+
     } catch (err) {
-        document.getElementById("outputText").value = "API error bro.";
+        document.getElementById("outputText").value =
+            "Server offline.\nWe will be back shortly 🙏";
     }
 };
 
