@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova Translator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Nova Translator</h1>
+
+        <!-- Language selectors -->
+        <div class="language-row">
+            <select id="sourceLang"></select>
+            <button id="swapBtn">↔</button>
+            <select id="targetLang"></select>
+        </div>
+
+        <!-- Text boxes -->
+        <div class="textbox-row">
+            <textarea id="inputText" placeholder="Enter text or use image upload..."></textarea>
+            <textarea id="outputText" placeholder="Translation appears here..." readonly></textarea>
+        </div>
+
+        <!-- Image upload -->
+        <div class="image-box">
+            <input type="file" id="imageInput" accept="image/*">
+            <button id="ocrBtn">Extract Text</button>
+        </div>
+
+        <!-- Translate button -->
+        <button id="translateBtn" class="translate-btn">Translate</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
