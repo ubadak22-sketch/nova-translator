@@ -1,52 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Nova Translator</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <button id="darkModeBtn">🌙</button>
 
-    <div class="container">
-        <h1 class="title">Nova Translator</h1>
+    <!-- HEADER -->
+    <header>
+        <h1>Nova Translator</h1>
+        <button id="darkModeBtn">🌙</button>
+    </header>
 
-        <!-- Language selectors -->
-        <div class="language-row">
-            <select id="sourceLang">
-                <option value="auto">Auto Detect</option>
-            </select>
+    <!-- MAIN TRANSLATOR BOX -->
+    <div class="translator-container">
 
-            <button id="swapBtn">↔</button>
+        <!-- LEFT PANEL -->
+        <div class="panel">
+            <div class="panel-top">
+                <select id="sourceLang"></select>
+                <button class="small-btn" id="detectBtn">Detect</button>
+            </div>
 
-            <select id="targetLang"></select>
+            <textarea id="inputText" placeholder="Type here..."></textarea>
+
+            <div class="panel-tools">
+                <input type="file" id="imageInput" accept="image/*" hidden>
+                <button class="tool-btn" id="imageBtn">🖼 Image</button>
+            </div>
         </div>
 
-        <!-- Textboxes -->
-        <div class="textbox-row">
-            <textarea id="inputText" placeholder="Type or speak..."></textarea>
+        <!-- MIDDLE BUTTON -->
+        <button class="swap-btn" id="swapBtn">⇆</button>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel">
+            <div class="panel-top">
+                <select id="targetLang"></select>
+                <button class="small-btn" id="translateBtn">Translate</button>
+            </div>
+
             <textarea id="outputText" placeholder="Translation appears here..." readonly></textarea>
+
+            <div class="panel-tools">
+                <button class="tool-btn" id="copyOutput">📋 Copy</button>
+            </div>
         </div>
 
-        <!-- Extra tools -->
-        <div class="tools-row">
-            <button id="copyInput">Copy Input</button>
-            <button id="copyOutput">Copy Output</button>
-            <button id="speechBtn">🎤 Speak</button>
-            <button id="ttsBtn">🔊 Listen</button>
-        </div>
-
-        <!-- Image OCR -->
-        <div class="image-box">
-            <input type="file" id="imageInput" accept="image/*">
-            <button id="ocrBtn">Extract Text</button>
-        </div>
-
-        <button id="translateBtn" class="translate-btn">Translate</button>
     </div>
 
-    <script src="script_v3.js"></script>
+    <script src="script.js"></script>
+
 </body>
 </html>
