@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lingua — Fast Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --surface2: #f4f0e8;
+    --border: #e8e0d0;
+    --border2: #d4c9b0;
+    --accent: #b8862a;
+    --accent-bg: #fdf3dc;
+    --accent-hover: #9a6e1e;
+    --text: #1e1a14;
+    --text2: #3d3628;
+    --muted: #9a8f7a;
+    --success: #2d8a55;
+    --success-bg: #edf7f2;
+    --error: #c0392b;
+    --error-bg: #fdf0ee;
+    --shadow: 0 1px 3px rgba(100,80,40,0.08), 0 4px 16px rgba(100,80,40,0.06);
+    --shadow-sm: 0 1px 2px rgba(100,80,40,0.06);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Subtle warm background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, rgba(232,201,122,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(184,134,42,0.07) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+  .logo span {
+    color: var(--muted);
+    font-style: normal;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 2px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    background: var(--surface2);
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .status-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .status-pill.online .dot { background: var(--success); box-shadow: 0 0 5px rgba(45,138,85,0.5); }
+  .status-pill.online { color: var(--success); border-color: rgba(45,138,85,0.25); background: var(--success-bg); }
+  .status-pill.error .dot { background: var(--error); }
+  .status-pill.error { color: var(--error); border-color: rgba(192,57,43,0.25); background: var(--error-bg); }
+
+  /* ── MAIN ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab:hover { color: var(--text2); background: var(--surface2); }
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 500;
+    box-shadow: 0 1px 4px rgba(184,134,42,0.3);
+  }
+  .tab svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ── PANELS ── */
+  .panel { display: none; animation: fadeIn 0.22s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── TRANSLATE GRID ── */
+  .translate-grid {
+    display: grid;
+    grid-template-columns: 1fr 52px 1fr;
+  }
+
+  .lang-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .lang-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .lang-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    padding: 6px 26px 6px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a8f7a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    max-width: 155px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .lang-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(184,134,42,0.12); }
+  .lang-select option { background: #fff; color: var(--text); }
+
+  .char-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.75;
+    padding: 18px;
+    width: 100%;
+    min-height: 180px;
+  }
+  textarea::placeholder { color: var(--muted); }
+
+  .result-text {
+    flex: 1;
+    padding: 18px;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.75;
+    color: var(--text);
+    min-height: 180px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .result-text.placeholder { color: var(--muted); font-style: italic; }
+
+  /* ── DIVIDER COL ── */
+  .divider-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: var(--surface2);
+    padding: 12px 0;
+  }
+
+  .swap-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .swap-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg);
+    transform: rotate(180deg);
+  }
+  .swap-btn svg { width: 15px; height: 15px; }
+
+  /* ── CARD FOOTER ── */
+  .card-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .detected-lang {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .detected-lang .badge {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid rgba(184,134,42,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  .action-row { display: flex; gap: 8px; align-items: center; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 9px 20px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(184,134,42,0.3);
+  }
+  .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 2px 6px rgba(184,134,42,0.35); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  .btn .spin {
+    display: none;
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  .btn.loading .spin { display: block; }
+  .btn.loading .btn-label { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── COPY BTN ── */
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 10.5px;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  /* ── DETECT PANEL ── */
+  .detect-card { padding: 36px 40px; text-align: center; }
+  .detect-input-wrap { max-width: 600px; margin: 0 auto 20px; }
+  .detect-textarea {
+    width: 100%;
+    min-height: 120px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 16px 18px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .detect-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(184,134,42,0.1); }
+  .detect-textarea::placeholder { color: var(--muted); }
+
+  .detect-result {
+    display: none;
+    margin-top: 28px;
+    animation: fadeIn 0.3s;
+  }
+  .lang-name-big {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 8vw, 56px);
+    font-style: italic;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .lang-code-small {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 3px;
+  }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-zone-icon { font-size: 38px; margin-bottom: 12px; }
+  .drop-zone p { font-size: 14px; color: var(--text2); margin-bottom: 5px; }
+  .drop-zone .hint { font-size: 11.5px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+  /* ── PREVIEW ── */
+  .preview-wrap {
+    display: none;
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    box-shadow: var(--shadow-sm);
+  }
+  .preview-wrap img {
+    max-width: 100%;
+    max-height: 300px;
+    width: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .preview-clear {
+    position: absolute; top: 10px; right: 10px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    transition: all 0.18s;
+    box-shadow: var(--shadow-sm);
+  }
+  .preview-clear:hover { background: var(--error-bg); border-color: var(--error); color: var(--error); }
+
+  /* ── OCR GRID ── */
+  .ocr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .ocr-result-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    min-height: 130px;
+    box-shadow: var(--shadow-sm);
+  }
+  .ocr-result-box h4 {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ocr-result-box p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* ── OPTIONS ROW ── */
+  .options-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin: 14px 0;
+    flex-wrap: wrap;
+  }
+  .options-row label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    display: block;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    padding: 11px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 1000;
+    animation: slideUp 0.25s ease;
+    max-width: min(300px, calc(100vw - 40px));
+    border: 1px solid;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+  }
+  .toast.success { background: var(--success-bg); border-color: rgba(45,138,85,0.3); color: var(--success); }
+  .toast.error { background: var(--error-bg); border-color: rgba(192,57,43,0.3); color: var(--error); }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ══════════════════════════════════
+     RESPONSIVE BREAKPOINTS
+  ══════════════════════════════════ */
+
+  /* Tablet – 900px */
+  @media (max-width: 900px) {
+    header { padding: 16px 24px; }
+    main { padding: 28px 20px 60px; }
+    .detect-card { padding: 28px 24px; }
+  }
+
+  /* Mobile – 640px */
+  @media (max-width: 640px) {
+    header { padding: 14px 16px; }
+    .logo { font-size: 19px; }
+    .logo span { display: none; }
+
+    main { padding: 20px 12px 70px; }
+
+    /* Tabs become full-width scrollable strip */
+    .tabs {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+    }
+    .tab { padding: 8px 14px; font-size: 12px; gap: 5px; }
+    .tab svg { width: 13px; height: 13px; }
+
+    /* Stack translate grid vertically */
+    .translate-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+    }
+    .divider-col {
+      flex-direction: row;
+      justify-content: center;
+      border-left: none;
+      border-right: none;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      gap: 8px;
+    }
+    .swap-btn:hover { transform: none; }
+
+    textarea { min-height: 130px; font-size: 14px; padding: 14px; }
+    .result-text { min-height: 130px; font-size: 14px; padding: 14px; }
+
+    .lang-header { padding: 11px 14px 10px; }
+    .lang-select { font-size: 11px; max-width: 130px; }
+
+    .card-footer { padding: 10px 14px; }
+    .btn { padding: 8px 16px; font-size: 12.5px; }
+
+    /* Drop zone smaller on mobile */
+    .drop-zone { padding: 32px 16px; }
+    .drop-zone-icon { font-size: 30px; }
+
+    /* OCR grid stacks */
+    .ocr-grid { grid-template-columns: 1fr; }
+
+    /* Detect card */
+    .detect-card { padding: 24px 16px; }
+    .lang-name-big { font-size: 38px; }
+
+    /* Options row stacks nicely */
+    .options-row { gap: 10px; }
+    .options-row > * { flex: 1; min-width: 0; }
+
+    /* Toast full-width on tiny screens */
+    .toast { right: 12px; left: 12px; max-width: none; }
+  }
+
+  /* Very small – 380px */
+  @media (max-width: 380px) {
+    .tab span.tab-label { display: none; }
+    .tab { padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Lingua <span>v2.0</span></div>
+  <div class="status-pill" id="statusPill">
+    <div class="dot"></div>
+    <span id="statusText">connecting</span>
+  </div>
+</header>
+
+<main>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('translate', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 8 4 4-4 4M19 8l-4 4 4 4"/></svg>
+      <span class="tab-label">Translate</span>
+    </button>
+    <button class="tab" onclick="switchTab('detect', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg>
+      <span class="tab-label">Detect</span>
+    </button>
+    <button class="tab" onclick="switchTab('ocr', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4M13 12h4M7 15h10"/></svg>
+      <span class="tab-label">OCR</span>
+    </button>
+    <button class="tab" onclick="switchTab('imgtr', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21M14 10l3 3"/></svg>
+      <span class="tab-label">Img Translate</span>
+    </button>
+  </div>
+
+  <!-- TRANSLATE PANEL -->
+  <div class="panel active" id="panel-translate">
+    <div class="card">
+      <div class="translate-grid">
+        <div class="lang-panel">
+          <div class="lang-header">
+            <select class="lang-select" id="srcLang">
+              <option value="auto">Auto detect</option>
+            </select>
+            <span class="char-count" id="charCount">0</span>
+          </div>
+          <textarea id="srcText" placeholder="Enter text to translate…" oninput="onSrcInput()"></textarea>
+        </div>
+
+        <div class="divider-col">
+          <button class="swap-btn" onclick="swapLangs()" title="Swap languages">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
+          </button>
+        </div>
+
+        <div class="lang-panel">
+          <div class="lang-header">
+            <select class="lang-select" id="tgtLang">
+              <option value="en">English</option>
+            </select>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="copy-btn" onclick="copyResult()" id="copyBtn" style="display:none">copy</button>
+            </div>
+          </div>
+          <div class="result-text placeholder" id="resultText">Translation will appear here…</div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="detected-lang" id="detectedInfo" style="display:none">
+          detected: <span class="badge" id="detectedBadge"></span>
+        </div>
+        <div style="flex:1"></div>
+        <div class="action-row">
+          <button class="btn btn-ghost" onclick="clearTranslate()">Clear</button>
+          <button class="btn btn-primary" id="translateBtn" onclick="doTranslate()">
+            <div class="spin"></div>
+            <span class="btn-label">Translate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETECT PANEL -->
+  <div class="panel" id="panel-detect">
+    <div class="card detect-card">
+      <div class="detect-input-wrap">
+        <textarea class="detect-textarea" id="detectText" placeholder="Paste any text and we'll identify the language…"></textarea>
+        <div style="display:flex;justify-content:center;margin-top:16px">
+          <button class="btn btn-primary" id="detectBtn" onclick="doDetect()">
+            <div class="spin"></div>
+            <span class="btn-label">Detect Language</span>
+          </button>
+        </div>
+      </div>
+      <div class="detect-result" id="detectResult">
+        <div class="lang-name-big" id="detectedLangName"></div>
+        <div class="lang-code-small" id="detectedLangCode"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OCR PANEL -->
+  <div class="panel" id="panel-ocr">
+    <div class="drop-zone" id="ocrDrop" ondragover="onDrag(event,'ocrDrop')" ondragleave="offDrag('ocrDrop')" ondrop="onDropFile(event,'ocr')">
+      <input type="file" id="ocrFile" accept="image/*" onchange="onFileChange(this,'ocr')">
+      <div class="drop-zone-icon">🖼️</div>
+      <p>Drop an image or click to upload</p>
+      <p class="hint">PNG, JPG, WEBP · Max 10MB</p>
+    </div>
+
+    <div class="preview-wrap" id="ocrPreview">
+      <img id="ocrPreviewImg" src="" alt="preview">
+      <button class="preview-clear" onclick="clearImage('ocr')">✕</button>
+    </div>
+
+    <div class="options-row" id="ocrOptions" style="display:none">
+      <div>
+        <label>OCR Language</label>
+        <select class="lang-select" id="ocrLang">
+          <option value="eng">English</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="spa">Spanish</option>
+          <option value="ita">Italian</option>
+          <option value="por">Portuguese</option>
+          <option value="rus">Russian</option>
+          <option value="jpn">Japanese</option>
+          <option value="kor">Korean</option>
+          <option value="chi_sim">Chinese (Simplified)</option>
+          <option value="ara">Arabic</option>
+          <option value="hin">Hindi</option>
+        </select>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" id="ocrBtn" onclick="doOCR()">
+        <div class="spin"></div>
+        <span class="btn-label">Extract Text</span>
+      </button>
+    </div>
+
+    <div id="ocrResultBox" style="display:none" class="ocr-result-box" style="margin-top:0">
+      <h4>Extracted Text <button class="copy-btn" onclick="copyText('ocrOutput')" style="margin-left:8px">copy</button></h4>
+      <p id="ocrOutput"></p>
+    </div>
+  </div>
+
+  <!-- IMAGE TRANSLATE PANEL -->
+  <div class="panel" id="panel-imgtr">
+    <div class="drop-zone" id="imgtrDrop" ondragover="onDrag(event,'imgtrDrop')" ondragleave="offDrag('imgtrDrop')" ondrop="onDropFile(event,'imgtr')">
+      <input type="file" id="imgtrFile" accept="image/*" onchange="onFileChange(this,'imgtr')">
+      <div class="drop-zone-icon">📷</div>
+      <p>Drop image with text to translate</p>
+      <p class="hint">PNG, JPG, WEBP · Max 10MB</p>
+    </div>
+
+    <div class="preview-wrap" id="imgtrPreview">
+      <img id="imgtrPreviewImg" src="" alt="preview">
+      <button class="preview-clear" onclick="clearImage('imgtr')">✕</button>
+    </div>
+
+    <div class="options-row" id="imgtrOptions" style="display:none">
+      <div>
+        <label>Translate To</label>
+        <select class="lang-select" id="imgtrTgtLang"></select>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" id="imgtrBtn" onclick="doImgTr()">
+        <div class="spin"></div>
+        <span class="btn-label">Translate Image</span>
+      </button>
+    </div>
+
+    <div id="imgtrResultGrid" style="display:none">
+      <div class="ocr-grid">
+        <div class="ocr-result-box">
+          <h4>Original Text <button class="copy-btn" onclick="copyText('imgtrOriginal')" style="margin-left:8px">copy</button></h4>
+          <p id="imgtrOriginal"></p>
+        </div>
+        <div class="ocr-result-box">
+          <h4>Translated Text <button class="copy-btn" onclick="copyText('imgtrTranslated')" style="margin-left:8px">copy</button></h4>
+          <p id="imgtrTranslated"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'https://nylon-warranties-labour-polymer.trycloudflare.com';
+let token = null;
+let tokenExpiry = 0;
+let languages = {};
+let ocrImageB64 = null;
+let imgtrImageB64 = null;
+
+// Fallback language list — always available offline
+const FALLBACK_LANGS = [
+  ["ar","Arabic"],["bn","Bengali"],["zh-cn","Chinese"],["cs","Czech"],
+  ["da","Danish"],["nl","Dutch"],["en","English"],["fi","Finnish"],
+  ["fr","French"],["de","German"],["el","Greek"],["he","Hebrew"],
+  ["hi","Hindi"],["hu","Hungarian"],["id","Indonesian"],["it","Italian"],
+  ["ja","Japanese"],["ko","Korean"],["ms","Malay"],["no","Norwegian"],
+  ["pa","Punjabi"],["pl","Polish"],["pt","Portuguese"],["ru","Russian"],
+  ["es","Spanish"],["sv","Swedish"],["ta","Tamil"],["te","Telugu"],
+  ["th","Thai"],["tr","Turkish"],["uk","Ukrainian"],["ur","Urdu"],
+  ["vi","Vietnamese"]
+];
+
+// Seed selects immediately with fallback data
+FALLBACK_LANGS.forEach(([code, name]) => { languages[code] = name; });
+populateLangSelects();
+
+// ---- TOKEN MANAGEMENT ----
+async function getToken() {
+  if (token && Date.now() < tokenExpiry - 60000) return token;
+  try {
+    const r = await fetch(`${API}/token`, { method: 'POST' });
+    const d = await r.json();
+    if (d.s) {
+      token = d.d.token;
+      tokenExpiry = Date.now() + d.d.exp * 1000;
+      return token;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function authFetch(path, body) {
+  const t = await getToken();
+  if (!t) throw new Error('Could not obtain token');
+  const r = await fetch(`${API}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ---- INIT ----
+async function init() {
+  // Check health
+  try {
+    const r = await fetch(`${API}/health`);
+    const d = await r.json();
+    if (d.s) {
+      setStatus('online', 'online');
+    }
+  } catch(e) {
+    setStatus('error', 'offline');
+  }
+
+  // Load languages
+  try {
+    const r = await fetch(`${API}/langs`);
+    const d = await r.json();
+    if (d.s && d.d) {
+      d.d.forEach(l => { languages[l.c] = l.n; });
+      populateLangSelects(); // refresh with API data
+    }
+  } catch(e) {}
+}
+
+function setStatus(cls, text) {
+  const p = document.getElementById('statusPill');
+  const t = document.getElementById('statusText');
+  p.className = `status-pill ${cls}`;
+  t.textContent = text;
+}
+
+function populateLangSelects() {
+  const srcSel = document.getElementById('srcLang');
+  const tgtSel = document.getElementById('tgtLang');
+  const imgtrSel = document.getElementById('imgtrTgtLang');
+
+  const sorted = Object.entries(languages).sort((a,b) => a[1].localeCompare(b[1]));
+
+  // Save current selections
+  const srcVal = srcSel.value;
+  const tgtVal = tgtSel.value || 'en';
+  const imgtrVal = imgtrSel.value || 'es';
+
+  // Clear non-auto options from src
+  while (srcSel.options.length > 1) srcSel.remove(1);
+  tgtSel.innerHTML = '';
+  imgtrSel.innerHTML = '';
+
+  sorted.forEach(([code, name]) => {
+    srcSel.appendChild(new Option(name, code));
+    tgtSel.appendChild(new Option(name, code));
+    imgtrSel.appendChild(new Option(name, code));
+  });
+
+  // Restore selections
+  srcSel.value = srcVal || 'auto';
+  tgtSel.value = tgtVal;
+  imgtrSel.value = imgtrVal;
+}
+
+// ---- TABS ----
+function switchTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`panel-${id}`).classList.add('active');
+  el.classList.add('active');
+}
+
+// ---- TRANSLATE ----
+function onSrcInput() {
+  const v = document.getElementById('srcText').value;
+  document.getElementById('charCount').textContent = v.length;
+}
+
+function swapLangs() {
+  const src = document.getElementById('srcLang');
+  const tgt = document.getElementById('tgtLang');
+  const srcText = document.getElementById('srcText');
+  const resultEl = document.getElementById('resultText');
+
+  const srcVal = src.value;
+  if (srcVal === 'auto') return;
+
+  const tgtVal = tgt.value;
+  // swap values
+  src.value = tgtVal;
+  tgt.value = srcVal;
+
+  // swap text
+  const prevResult = resultEl.classList.contains('placeholder') ? '' : resultEl.textContent;
+  const prevSrc = srcText.value;
+  srcText.value = prevResult;
+  if (prevSrc) {
+    resultEl.textContent = prevSrc;
+    resultEl.classList.remove('placeholder');
+  } else {
+    resultEl.textContent = 'Translation will appear here…';
+    resultEl.classList.add('placeholder');
+  }
+  onSrcInput();
+}
+
+async function doTranslate() {
+  const text = document.getElementById('srcText').value.trim();
+  if (!text) { showToast('Enter some text first', 'error'); return; }
+
+  const src = document.getElementById('srcLang').value;
+  const tgt = document.getElementById('tgtLang').value;
+
+  setBtnLoading('translateBtn', true);
+  try {
+    const d = await authFetch('/tr', { t: text, s: src, tg: tgt });
+    if (d.s) {
+      const res = document.getElementById('resultText');
+      res.textContent = d.d.t;
+      res.classList.remove('placeholder');
+      document.getElementById('copyBtn').style.display = 'inline';
+
+      if (src === 'auto' && d.d.s) {
+        document.getElementById('detectedInfo').style.display = 'flex';
+        document.getElementById('detectedBadge').textContent = languages[d.d.s] || d.d.s;
+      }
+    } else {
+      showToast(d.e || 'Translation failed', 'error');
+    }
+  } catch(e) { showToast('Network error', 'error'); }
+  setBtnLoading('translateBtn', false);
+}
+
+function clearTranslate() {
+  document.getElementById('srcText').value = '';
+  document.getElementById('charCount').textContent = '0';
+  const res = document.getElementById('resultText');
+  res.textContent = 'Translation will appear here…';
+  res.classList.add('placeholder');
+  document.getElementById('detectedInfo').style.display = 'none';
+  document.getElementById('copyBtn').style.display = 'none';
+}
+
+function copyResult() {
+  const text = document.getElementById('resultText').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied!', 'success'));
+}
+
+// ---- DETECT ----
+async function doDetect() {
+  const text = document.getElementById('detectText').value.trim();
+  if (!text) { showToast('Enter some text first', 'error'); return; }
+
+  setBtnLoading('detectBtn', true);
+  try {
+    const d = await authFetch('/detect', { t: text });
+    if (d.s) {
+      const res = document.getElementById('detectResult');
+      document.getElementById('detectedLangName').textContent = d.d.name || d.d.lang;
+      document.getElementById('detectedLangCode').textContent = d.d.lang.toUpperCase();
+      res.style.display = 'block';
+    } else {
+      showToast(d.e || 'Detection failed', 'error');
+    }
+  } catch(e) { showToast('Network error', 'error'); }
+  setBtnLoading('detectBtn', false);
+}
+
+// ---- OCR ----
+function onFileChange(input, mode) {
+  const file = input.files[0];
+  if (!file) return;
+  loadImageFile(file, mode);
+}
+
+function onDrag(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag-over'); }
+function offDrag(id) { document.getElementById(id).classList.remove('drag-over'); }
+function onDropFile(e, mode) {
+  e.preventDefault();
+  offDrag(mode === 'ocr' ? 'ocrDrop' : 'imgtrDrop');
+  const file = e.dataTransfer.files[0];
+  if (file) loadImageFile(file, mode);
+}
+
+function loadImageFile(file, mode) {
+  if (!file.type.startsWith('image/')) { showToast('Please upload an image file', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    const b64 = dataUrl.split(',')[1];
+
+    if (mode === 'ocr') {
+      ocrImageB64 = b64;
+      document.getElementById('ocrPreviewImg').src = dataUrl;
+      document.getElementById('ocrPreview').style.display = 'block';
+      document.getElementById('ocrDrop').style.display = 'none';
+      document.getElementById('ocrOptions').style.display = 'flex';
+      document.getElementById('ocrResultBox').style.display = 'none';
+    } else {
+      imgtrImageB64 = b64;
+      document.getElementById('imgtrPreviewImg').src = dataUrl;
+      document.getElementById('imgtrPreview').style.display = 'block';
+      document.getElementById('imgtrDrop').style.display = 'none';
+      document.getElementById('imgtrOptions').style.display = 'flex';
+      document.getElementById('imgtrResultGrid').style.display = 'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(mode) {
+  if (mode === 'ocr') {
+    ocrImageB64 = null;
+    document.getElementById('ocrPreview').style.display = 'none';
+    document.getElementById('ocrDrop').style.display = 'block';
+    document.getElementById('ocrOptions').style.display = 'none';
+    document.getElementById('ocrResultBox').style.display = 'none';
+    document.getElementById('ocrFile').value = '';
+  } else {
+    imgtrImageB64 = null;
+    document.getElementById('imgtrPreview').style.display = 'none';
+    document.getElementById('imgtrDrop').style.display = 'block';
+    document.getElementById('imgtrOptions').style.display = 'none';
+    document.getElementById('imgtrResultGrid').style.display = 'none';
+    document.getElementById('imgtrFile').value = '';
+  }
+}
+
+async function doOCR() {
+  if (!ocrImageB64) { showToast('Upload an image first', 'error'); return; }
+  const lang = document.getElementById('ocrLang').value;
+
+  setBtnLoading('ocrBtn', true);
+  try {
+    const d = await authFetch('/ocr', { img: ocrImageB64, l: lang });
+    if (d.s) {
+      document.getElementById('ocrOutput').textContent = d.d.text || '(no text found)';
+      document.getElementById('ocrResultBox').style.display = 'block';
+    } else {
+      showToast(d.e || 'OCR failed', 'error');
+    }
+  } catch(e) { showToast('Network error', 'error'); }
+  setBtnLoading('ocrBtn', false);
+}
+
+async function doImgTr() {
+  if (!imgtrImageB64) { showToast('Upload an image first', 'error'); return; }
+  const tgt = document.getElementById('imgtrTgtLang').value;
+
+  setBtnLoading('imgtrBtn', true);
+  try {
+    const d = await authFetch('/imgtr', { img: imgtrImageB64, tg: tgt });
+    if (d.s) {
+      document.getElementById('imgtrOriginal').textContent = d.d.original || '(no text found)';
+      document.getElementById('imgtrTranslated').textContent = d.d.translated || '';
+      document.getElementById('imgtrResultGrid').style.display = 'block';
+    } else {
+      showToast(d.e || 'Translation failed', 'error');
+    }
+  } catch(e) { showToast('Network error', 'error'); }
+  setBtnLoading('imgtrBtn', false);
+}
+
+// ---- UTILS ----
+function setBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  btn.classList.toggle('loading', loading);
+  btn.disabled = loading;
+}
+
+function copyText(id) {
+  const t = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(t).then(() => showToast('Copied!', 'success'));
+}
+
+function showToast(msg, type = 'success') {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// Keyboard shortcut: Ctrl+Enter to translate
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const active = document.querySelector('.panel.active');
+    if (active.id === 'panel-translate') doTranslate();
+    else if (active.id === 'panel-detect') doDetect();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
